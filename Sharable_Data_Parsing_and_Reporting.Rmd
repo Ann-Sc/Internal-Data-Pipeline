@@ -1,0 +1,506 @@
+---
+title: "Board Report Parser"
+author: "Ann Scruggs"
+date: "2024-12-12"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Initial Steps
+
+Go to the **Data for R Parser** (link redacted for privacy) report in PowerBI. Filter for the appropriate dates and download on local device.
+
+# Transforming the Dataset
+
+### Setup
+
+The code chunk below loads the appropriate data downloaded from PowerBI and does some initial setup
+
+```{r part_1}
+
+######################################################################
+#Loading in Data and initial setup
+######################################################################
+
+#install.packages("readxl") 
+library(readxl)
+#install.packages("dplyr")
+library(dplyr)
+
+#setting directory and loading data
+setwd("~/path/to/project")
+data <- read_excel("data.xlsx")
+
+#quick view of dataset
+head(data)
+
+#Cleaning data
+field_data <- data %>%
+  mutate(Category = ifelse(Category == "Renewal", "Renew", Category)) %>% #Modifying "Renewal" category name
+  filter(Name...1 != "Total") %>% #removing total row
+  filter(Category != "Team Life") #filtering out TeamLife rows 
+
+```
+
+### Sub-Category Assignment
+
+The code chunk below creates a new column that assigns a sub - category to each activity. New and unassigned activities can be added to this chunk as they come.
+
+```{r part_2}
+
+######################################################################
+#Adding "sub_category" column and assigning each activity
+#PRIVACY NOTICE: Activity names redacted for privacy
+######################################################################
+
+categorized_data <- field_data %>%
+  mutate(sub_category = case_when(
+    
+    #REACH SUB-CATEGORIES
+    ##Pre-E Encounter
+    Name...2 %in% c("Activity A", "Activity B", "Activity C", "Activity D", 
+                    "Activity E", "Activity F", "Activity G", "Activity H", 
+                    "Activity I", "Activity J", "Activity K", "Activity L", 
+                    "Activity M", "Activity N", "Activity O", "Activity P", 
+                    "Activity Q", "Activity R", "Activity S", "Activity T") ~ "Pre E Encounter",
+    
+    ##Gospel Conversation
+    Name...2 %in% c("Activity U", "Activity V", "Activity W", "Activity X",
+                    "Activity Y", "Activity Z", "Activity AA", "Activity AB",
+                    "Activity AC", "Activity AD", "Activity AE", "Activity AF",
+                    "Activity AG", "Activity AH", "Activity AI", "Activity AJ",
+                    "Activity AK", "Activity AL", "Activity AM", "Activity AN",
+                    "Activity AO", "Activity AP", "Activity AQ") ~ "Gospel Conversation",
+    
+    ##Formal Gospel Encounter
+    Name...2 %in% c("Activity AR", "Activity AS", "Activity AT", "Activity AU",
+                    "Activity AV", "Activity AW", "Activity AX", "Activity AY",
+                    "Activity AZ", "Activity BA", "Activity BB", "Activity BC",
+                    "Activity BD", "Activity BE", "Activity BF") ~ "Formal Gospel Encounter",
+    
+    #RENEW SUB-CATEGORIES
+    ##Discipleship Encounter
+    Name...2 %in% c("Activity BG", "Activity BH", "Activity BI", "Activity BJ",
+                    "Activity BK", "Activity BL", "Activity BM", "Activity BN",
+                    "Activity BO", "Activity BP", "Activity BQ", "Activity BR",
+                    "Activity BS", "Activity BT", "Activity BU", "Activity BV",
+                    "Activity BW", "Activity BX", "Activity BY", "Activity BZ",
+                    "Activity CA", "Activity CB", "Activity CC", "Activity CD",
+                    "Activity CE", "Activity CF") ~ "Discipleship Encounter",
+    
+    ##Train & Support local leaders
+    Name...2 %in% c("Activity CG", "Activity CH", "Activity CI", "Activity CJ",
+                    "Activity CK", "Activity CL", "Activity CM", "Activity CN",
+                    "Activity CO", "Activity CP", "Activity CQ", "Activity CR",
+                    "Activity CS", "Activity CT", "Activity CU", "Activity CV",
+                    "Activity CW", "Activity CX", "Activity CY", "Activity CZ",
+                    "Activity DA", "Activity DB", "Activity DC", "Activity DD",
+                    "Activity DE", "Activity DF", "Activity DG", "Activity DH",
+                    "Activity DI", "Activity DJ", "Activity DK") ~ "Train & Support local leaders",
+    
+    ##Church Plant Activity
+    Name...2 %in% c("Activity DL", "Activity DM", "Activity DN", "Activity DO",
+                    "Activity DP", "Activity DQ", "Activity DR") ~ "Church Plant Activity",
+    
+    #RESTORE SUB-CATEGORIES 
+    ##Medical Care
+    Name...2 %in% c("Activity DS", "Activity DT", "Activity DU", "Activity DV",
+                    "Activity DW", "Activity DX", "Activity DY", "Activity DZ",
+                    "Activity EA", "Activity EB", "Activity EC", "Activity ED",
+                    "Activity EE") ~ "Medical Care",
+    
+    ##Mercy, diaconal, justice ministry
+    Name...2 %in% c("Activity EF", "Activity EG", "Activity EH", "Activity EI",
+                    "Activity EJ", "Activity EK", "Activity EL", "Activity EM",
+                    "Activity EN", "Activity EO", "Activity EP", "Activity EQ",
+                    "Activity ER", "Activity ES") ~ "Mercy, diaconal, justice ministry",
+    
+    ##Counseling Sessions
+    Name...2 %in% c("Activity ET", "Activity EU", "Activity EV") ~ "Mental Health Support",
+    
+    ##Renewal Team
+    Name...1 == "Renewal" ~ "Renewal Team",
+    
+    #UNASSIGNED ACTIVITIES
+    TRUE ~ "Unassigned"))
+
+head(categorized_data)
+```
+
+### Troubleshooting
+
+The code chunk below is good for troubleshooting.
+
+```{r part_3}
+
+######################################################################
+#Adding Notes column to explain why some unassigned activities should not be included in the sub_category count
+#PRIVACY NOTICE: Activity names redacted for privacy
+######################################################################
+
+categorized_data <- categorized_data %>%
+  mutate(Notes = case_when(
+    
+    #Double-Counts
+    Name...2 == "Activity A"
+    ~ "already counted with 'Activity D'",
+    
+    Name...2 %in% c("Activity DS", 
+                    "Activity DT", 
+                    "Activity DU") ~ "already counted with 'Activity B'",
+    
+    Name...2 %in% c("Activity U", 
+                    "Activity V", 
+                    "Activity W",
+                    "Activity AB") ~ "already counted with 'Activity X'",
+    
+    Name...2 == "Activity C"
+    ~ "already counted with 'Activity W'",
+    
+    
+    #Team, Donor, or HomeOffice Related
+    Name...2 %in% c("Activity EW", "Activity EX", "Activity EY", "Activity EZ",
+                    "Activity FA", "Activity FB", "Activity FC", "Activity FD",
+                    "Activity FE", "Activity FF", "Activity FG", "Activity FH",
+                    "Activity FI", "Activity FJ", "Activity FK", "Activity FL",
+                    "Activity FM", "Activity FN", "Activity FO", "Activity FP",
+                    "Activity FQ", "Activity FR", "Activity FS", "Activity FT",
+                    "Activity FU", "Activity FV", "Activity FW", "Activity FX",
+                    "Activity FY", "Activity FZ", "Activity GA", "Activity GB",
+                    "Activity GC", "Activity GD", "Activity GE", "Activity GF",
+                    "Activity GG") ~ "Team, Donor, or HomeOffice Related Activiy"))
+
+
+######################################################################
+#filters for all categorized_data that has an unassigned sub_category with no notes - these are the activities to take another look at (should they be slotted in a category?)
+######################################################################
+
+unassigned_data <- categorized_data %>%
+  filter(sub_category == "Unassigned" & is.na(Notes))
+
+unique(unassigned_data$Name...2) #list of unassigned activities
+
+unassigned_data %>%              #list with associated category
+  distinct(Name...2, Category)       
+       
+
+
+```
+
+# Overseas Visualizations
+
+Creating the dataset to use in the plots and setting brand colors
+
+```{r part_4}
+#install.packages("plotly")
+library(plotly)
+
+overseas_data <- categorized_data %>%
+  filter(!sub_category %in% c("Unassigned", "Renewal Team")) #filtering out any "unassigned" rows
+
+brand <- c("#EF5A4A","#55373C","#0E8BA4","#F5BA40","#AC4432", "#443F32","#388166", "#0B473A")
+
+rrr_brand <- c("#EF5A4A","#388166","#0E8BA4")
+```
+
+### Total RRR Plot
+
+```{r combined_plot}
+
+rrr_plot <- plot_ly(overseas_data, labels = ~Category, values = ~Quantity, type = 'pie', 
+                      marker = list(colors = rrr_brand[match(overseas_data$Category, unique(overseas_data$Category))]),  
+        showlegend = FALSE, textinfo = 'label+value',
+        texttemplate = "%{label}<br>%{value:,}")
+
+rrr_plot <- rrr_plot %>% layout(
+  paper_bgcolor = "#EFECE0",
+  font = list(
+    family = "Open Sans",        # Set font family (optional)
+    size = 22,              # Set font size for labels
+    color = "white"       # Set font color for labels
+  ))
+
+rrr_plot 
+
+#to save interactive plot 
+#htmlwidgets::saveWidget(rrr_plot, "~/Documents/Serge/Metrics/Dec_BR/Leadership-Reports/RRR_plot.html")
+```
+
+### Total Activity Plot
+
+```{r total_activity_plot}
+
+color_repeated <- rep(brand, length.out = 30)
+
+total_activity_plot <- plot_ly(overseas_data, labels = ~Name...2, values = ~Quantity, 
+        type = 'pie', textinfo ='percent', 
+        showlegend = FALSE, marker = list(colors = color_repeated),
+        insidetextorientation = 'radial',  # Make the inside text go radial (good for fitting)
+        textposition = 'inside')  # Place text inside each slice
+
+total_activity_plot <- total_activity_plot %>% layout(
+  paper_bgcolor = "#EFECE0")
+
+total_activity_plot
+
+#to save interactive plot 
+#htmlwidgets::saveWidget(total_activity_plot, "~/Documents/Serge/Metrics/Dec_BR/Leadership-Reports/total_activity_plot.html")
+```
+
+### Reach Plot (Full Brand Palette)
+
+```{r reach_plot}
+
+#REACH data
+reach_data <- overseas_data %>%
+  filter(sub_category %in% c("Pre E Encounter","Gospel Conversation","Formal Gospel Encounter"))
+
+#Plot
+reach_plot <- plot_ly(reach_data, labels = ~sub_category, values = ~Quantity, type = 'pie', 
+                      textinfo = 'label+percent', 
+                      marker = list(colors = rrr_brand[match(reach_data$sub_category, unique(reach_data$sub_category))]),
+                      showlegend = FALSE,
+                      insidetextorientation = 'horizontal', textposition = 'inside')
+
+reach_plot <- reach_plot %>% layout(
+  font = list(
+    family = "Open Sans",        # Set font family (optional)
+    size = 28,              # Set font size for labels
+    color = "white"       # Set font color for labels
+  ))
+
+reach_plot
+
+#to save interactive plot 
+#htmlwidgets::saveWidget(reach_plot, "~/Documents/Serge/Metrics/Dec_BR/Leadership-Reports/reach_plot.html")
+```
+
+### Reach Plot (Branded Blue Only)
+
+```{r blue}
+
+#blue palette
+blue_palette <- c("#084594", "#0E8BA4","#9ECAE1")
+
+
+#REACH data
+reach_data <- overseas_data %>%
+  filter(sub_category %in% c("Pre E Encounter","Gospel Conversation","Formal Gospel Encounter"))
+
+#Plot
+reach_plot <- plot_ly(reach_data, labels = ~sub_category, values = ~Quantity, type = 'pie', 
+                      textinfo = 'label+percent', 
+                      marker = list(colors = blue_palette[match(reach_data$sub_category, unique(reach_data$sub_category))]),
+                      showlegend = FALSE,
+                      insidetextorientation = 'horizontal', textposition = 'inside')
+
+reach_plot <- reach_plot %>% layout(
+  font = list(
+    family = "Open Sans",        # Set font family (optional)
+    size = 28,              # Set font size for labels
+    color = "white"       # Set font color for labels
+  ))
+
+reach_plot
+```
+
+### Renew Plot (Full Brand Palette)
+
+```{r renew_plot}
+
+#RENEW data
+renew_data <- overseas_data %>%
+  filter(sub_category %in% c("Discipleship Encounter","Train & Support local leaders","Church Plant Activity"))
+
+#Plot
+renew_plot <- plot_ly(renew_data, labels = ~sub_category, values = ~Quantity, type = 'pie', 
+                      textinfo = 'label+percent', 
+                      marker = list(colors = rrr_brand[match(renew_data$sub_category, unique(renew_data$sub_category))]),
+                      showlegend = FALSE,
+                      insidetextorientation = 'horizontal', textposition = 'inside')
+      
+renew_plot <- renew_plot %>% layout(
+  font = list(
+    family = "Open Sans",        # Set font family 
+    size = 28,              # Set font size for labels
+    color = "white"       # Set font color for labels
+  ))
+
+renew_plot
+
+#to save interactive plot 
+#htmlwidgets::saveWidget(renew_plot, "~/Documents/Serge/Metrics/Dec_BR/Leadership-Reports/renew_plot.html")
+```
+
+### Renew Plot (Branded Green Only)
+
+```{r green}
+
+#green palette
+green_palette <- c("#388166", "#0B473A","#41AE76")
+
+#RENEW data
+renew_data <- overseas_data %>%
+  filter(sub_category %in% c("Discipleship Encounter","Train & Support local leaders","Church Plant Activity"))
+
+#Plot
+renew_plot <- plot_ly(renew_data, labels = ~sub_category, values = ~Quantity, type = 'pie', 
+                      textinfo = 'label+percent', 
+                      marker = list(colors = green_palette[match(renew_data$sub_category, unique(renew_data$sub_category))]),
+                      showlegend = FALSE,
+                      insidetextorientation = 'horizontal', textposition = 'inside')
+      
+renew_plot <- renew_plot %>% layout(
+  font = list(
+    family = "Open Sans",        # Set font family 
+    size = 28,              # Set font size for labels
+    color = "white"       # Set font color for labels
+  ))
+
+renew_plot
+```
+
+### Restore Plot (Full Brand Palette)
+
+```{r restore_plot}
+
+#RESTORE data
+restore_data <- overseas_data %>%
+  filter(sub_category %in% c("Medical Care","Mercy, diaconal, justice ministry","Mental Health Support"))
+
+
+#Plot
+restore_plot <- plot_ly(restore_data, labels = ~sub_category, values = ~Quantity, 
+                        type = 'pie', textinfo = 'label+percent', 
+                        marker = list(colors = rrr_brand[match(restore_data$sub_category,
+                                                               unique(restore_data$sub_category))]),
+                        showlegend = FALSE,insidetextorientation = 'horizontal')
+                     
+
+restore_plot <- restore_plot %>% layout(
+  font = list(
+    family = "Open Sans",        # Set font family (optional)
+    size = 24,              # Set font size for labels
+    color = "black"),
+  margin = list(t = 110, b = 15, l = 20, r =20)# Set font color for labels
+)
+
+restore_plot
+
+#to save interactive plot 
+#htmlwidgets::saveWidget(restore_plot, "~/Documents/Serge/Metrics/Dec_BR/Leadership-Reports/restore_plot.html")
+```
+
+### Restore Plot (Branded Orange Only)
+
+```{r orange}
+
+#orange palette
+orange_palette <- c("#EF5A4A", "#FD8D3C", "#FDBB84")
+
+#RESTORE data
+restore_data <- overseas_data %>%
+  filter(sub_category %in% c("Medical Care","Mercy, diaconal, justice ministry","Mental Health Support"))
+
+
+#Plot
+restore_plot <- plot_ly(restore_data, labels = ~sub_category, values = ~Quantity, 
+                        type = 'pie', textinfo = 'label+percent', 
+                        marker = list(colors = orange_palette[match(restore_data$sub_category,
+                                                               unique(restore_data$sub_category))]),
+                        showlegend = FALSE,insidetextorientation = 'horizontal')
+                     
+
+restore_plot <- restore_plot %>% layout(
+  font = list(
+    family = "Open Sans",        # Set font family (optional)
+    size = 24,              # Set font size for labels
+    color = "black"),
+  margin = list(t = 110, b = 15, l = 20, r =20)# Set font color for labels
+)
+
+restore_plot
+
+```
+
+### Specific Outputs
+
+The code chunk below shows the values for each sub_category and is used to accurately fill in the side comments to the leadership report slides
+
+```{r specific outputs}
+
+#REACH comments
+reach_values <- reach_data %>%
+  group_by(sub_category) %>%
+  summarise(sum(Quantity))
+
+#RENEW comments
+renew_values <- renew_data %>%
+  group_by(sub_category) %>%
+  summarise(sum(Quantity))
+
+#RESTORE comments
+restore_values <- restore_data %>%
+  group_by(sub_category) %>%
+  summarise(sum(Quantity))
+```
+
+# Renewal Team Visualizations
+
+### Total RRR Plot
+
+```{r Renewal}
+
+total_data <- categorized_data %>%
+  filter(sub_category != "Unassigned") #filtering out any "unassigned" rows
+
+total_rrr_plot <- plot_ly(total_data, labels = ~Category, values = ~Quantity, type = 'pie', 
+                          marker = list(colors = rrr_brand[match(total_data$Category,
+                                                                 unique(total_data$Category))]),  
+                          showlegend = FALSE, textinfo = 'label+value')
+
+total_rrr_plot <- total_rrr_plot %>% layout(
+  paper_bgcolor = "#EFECE0",
+  font = list(
+    family = "Open Sans",        # Set font family (optional)
+    size = 28            # Set font size for labels
+  ))
+
+total_rrr_plot 
+```
+
+### Renew Plot
+
+```{r Renewal only}
+
+renewal_data <- total_data %>%
+  filter(sub_category == "Renewal Team")
+
+
+renewal_plot <- plot_ly(renewal_data, labels = ~Category, values = ~Quantity, type = 'pie', 
+                          marker = list(colors = "#388166"), showlegend = FALSE, textinfo = 'label+value',
+                          insidetextorientation = 'horizontal', textposition = 'inside')
+
+renewal_plot <- renewal_plot %>% layout(
+  paper_bgcolor = "#EFECE0",
+  font = list(
+    family = "Open Sans",        # Set font family (optional)
+    size = 20            # Set font size for labels
+  ))
+
+renewal_plot
+```
+
+### Specific Outputs
+
+```{r renew outputs}
+
+#renewal comments
+renewal_values <- renewal_data %>%
+  group_by(Name...2) %>%
+  summarise(sum(Quantity))
+
+```
