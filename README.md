@@ -1,6 +1,4 @@
-# Cross-Ministry Data Insights & Reporting 
-
-## Overview
+## Data Standardisation & Reporting Framework
 This R Markdown was developed to support cross-ministry reporting by processing, cleaning, and standardising hundreds of disparate metrics submitted by 50+ global teams. The script transforms PowerBI exports into consistent datasets, visual summaries, and stakeholder-ready reporting outputs. It enables leadership to quickly interpret large volumes of data through reproducible, privacy-conscious analysis.
 
 ## Anonymisation & Data Privacy
