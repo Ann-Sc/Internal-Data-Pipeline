@@ -24,5 +24,5 @@ Outputs are selected and adapted depending on the reporting audience (e.g., lead
 
 ## Planned Improvements
   * Introducing more comparative and scalable chart types while continuing to align visual formats with stakeholder reporting preferences to ensure clarity, usability, and adoption.
-  * Automated data ingestion from PowerBI exports
+  * Automated data ingestion from PowerBI 
 
